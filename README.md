@@ -1,283 +1,252 @@
-# The Network Simulator, Version 3
+# MU-MIMO with Type-II Codebook Precoding and User Grouping in ns-3 5G-LENA
 
-[![codecov](https://codecov.io/gh/nsnam/ns-3-dev-git/branch/master/graph/badge.svg)](https://codecov.io/gh/nsnam/ns-3-dev-git/branch/master/)
-[![Gitlab CI](https://gitlab.com/nsnam/ns-3-dev/badges/master/pipeline.svg)](https://gitlab.com/nsnam/ns-3-dev/-/pipelines)
-[![Github CI](https://github.com/nsnam/ns-3-dev-git/actions/workflows/per_commit.yml/badge.svg)](https://github.com/nsnam/ns-3-dev-git/actions)
+<!-- TODO: replace with the final paper title, venue, and badges -->
+[![ns-3](https://img.shields.io/badge/ns--3-3.xx-blue)](https://www.nsnam.org/)
+[![5G-LENA](https://img.shields.io/badge/5G--LENA-v4.x-green)](https://cttc-lena.gitlab.io/nr/html/)
+[![License](https://img.shields.io/badge/license-GPL--2.0-lightgrey)](LICENSE)
 
-[![Latest Release](https://gitlab.com/nsnam/ns-3-dev/-/badges/release.svg)](https://gitlab.com/nsnam/ns-3-dev/-/releases)
+This repository contains the simulation code accompanying the paper:
 
-## License
+> **\<MU-MIMO with Type-II Codebook Precoding and User Grouping in ns-3 5G-LENA\>**
+> Amirhassan Babazadeh Darabi, \<Co-authors\>, Marina Petrova, Ljiljana Simić
+> *\<MobiWac, 2026\>*
+> Chair of Mobile Communications and Computing (MCC), RWTH Aachen University
 
-This software is licensed under the terms of the GNU General Public License v2.0 only (GPL-2.0-only).
-See the LICENSE file for more details.
+It extends [5G-LENA](https://gitlab.com/cttc-lena/nr) with multi-user MIMO (MU-MIMO) spatial-division multiple access (SDMA) scheduling based on **CPOG — Codebook-based Precoder Orthogonality Grouping**. CPOG groups users for co-scheduling using only the precoding matrix indicators reported through Type-II codebook CSI feedback, and serves each group with zero-forcing (ZF) precoding, avoiding the need for full channel knowledge at the gNB.
+
+---
 
 ## Table of Contents
 
-* [Overview](#overview-an-open-source-project)
-* [Software overview](#software-overview)
-* [Getting ns-3](#getting-ns-3)
-* [Building ns-3](#building-ns-3)
-* [Testing ns-3](#testing-ns-3)
-* [Running ns-3](#running-ns-3)
-* [ns-3 Documentation](#ns-3-documentation)
-* [Working with the Development Version of ns-3](#working-with-the-development-version-of-ns-3)
-* [Contributing to ns-3](#contributing-to-ns-3)
-* [Reporting Issues](#reporting-issues)
-* [Asking Questions](#asking-questions)
-* [ns-3 App Store](#ns-3-app-store)
+- [Features](#features)
+- [Repository Structure](#repository-structure)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Running the Simulation](#running-the-simulation)
+- [Parameters](#parameters)
+- [Output](#output)
+- [Reproducing the Paper Results](#reproducing-the-paper-results)
+- [Citation](#citation)
+- [License](#license)
+- [Contact](#contact)
 
-> **NOTE**: Much more substantial information about ns-3 can be found at
-<https://www.nsnam.org>
+---
 
-## Overview: An Open Source Project
+## Features
 
-ns-3 is a free open source project aiming to build a discrete-event
-network simulator targeted for simulation research and education.
-This is a collaborative project; we hope that
-the missing pieces of the models we have not yet implemented
-will be contributed by the community in an open collaboration
-process. If you would like to contribute to ns-3, please check
-the [Contributing to ns-3](#contributing-to-ns-3) section below.
+- **Type-II codebook** (`NrCbTypeTwo`) and corresponding **PMI search** (`NrPmSearchTypeTwo`) for high-resolution CSI feedback
+- **TDMA + SDMA MAC scheduler** (`NrMacSchedulerTdmaSdma`, round-robin variant `NrMacSchedulerTdmaSdmaRR`) supporting multiple co-scheduled users per slot
+- **User grouping methods**
+  - CPOG (Type-I and Type-II codebook-based precoder orthogonality)
+  - Full-CSI SVD baseline
+  - Volume-ratio baseline
+  - K-means clustering
+- **ZF precoding** computed from Type-II codebook feedback
+- **Post-precoding SINR computation** for co-scheduled users
+- Per-RNTI dynamic BWP routing via a custom `BwpManagerAlgorithm` subclass
+- Python analysis scripts for SINR CDFs, co-scheduling degree, per-UE throughput, and scalability plots
 
-This README excerpts some details from a more extensive
-tutorial that is maintained at:
-<https://www.nsnam.org/documentation/latest/>
+---
 
-## Software overview
+## Repository Structure
 
-From a software perspective, ns-3 consists of a number of C++
-libraries organized around different topics and technologies.
-Programs that actually run simulations can be written in
-either C++ or Python; the use of Python is enabled by
-[runtime C++/Python bindings](https://cppyy.readthedocs.io/en/latest/).  Simulation programs will
-typically link or import the ns `core` library and any additional
-libraries that they need.  ns-3 requires a modern C++ compiler
-installation (g++ or clang++) and the [CMake](https://cmake.org) build system.
-Most ns-3 programs are single-threaded; there is some limited
-support for parallelization using the [MPI](https://www.nsnam.org/docs/models/html/distributed.html) framework.
-ns-3 can also run in a real-time emulation mode by binding to an
-Ethernet device on the host machine and generating and consuming
-packets on an actual network.  The ns-3 APIs are documented
-using [Doxygen](https://www.doxygen.nl).
-
-The code for the framework and the default models provided
-by ns-3 is built as a set of libraries. The libraries maintained
-by the open source project can be found in the `src` directory.
-Users may extend ns-3 by adding libraries to the build;
-third-party libraries can be found on the [ns-3 App Store](https://www.nsnam.org)
-or elsewhere in public Git repositories, and are usually added to the `contrib` directory.
-
-## Getting ns-3
-
-ns-3 can be obtained by either downloading a released source
-archive, or by cloning the project's
-[Git repository](https://gitlab.com/nsnam/ns-3-dev.git).
-
-Starting with ns-3 release version 3.45, there are two versions
-of source archives that are published with each release:
-
-1. ns-3.##.tar.bz2
-1. ns-allinone-3.##.tar.bz2
-
-The first archive is simply a compressed archive of the same code
-that one can obtain by checking out the release tagged code from
-the ns-3-dev Git repository.  The second archive consists of
-ns-3 plus additional contributed modules that are maintained outside
-of the main ns-3 open source project but that have been reviewed
-by maintainers and lightly tested for compatibility with the
-release.  The contributed modules included in the `allinone` release
-will change over time as new third-party libraries emerge while others
-may lose compatibility with the ns-3 mainline (e.g., if they become
-unmaintained).
-
-## Building ns-3
-
-As mentioned above, ns-3 uses the CMake build system, but
-the project maintains a customized wrapper around CMake
-called the `ns3` tool.  This tool provides a
-[Waf-like](https://waf.io) API
-to the underlying CMake build manager.
-To build the set of default libraries and the example
-programs included in this package, you need to use the
-`ns3` tool. This tool provides a Waf-like API to the
-underlying CMake build manager.
-Detailed information on how to use `ns3` is included in the
-[quick start guide](doc/installation/source/quick-start.rst).
-
-Before building ns-3, you must configure it.
-This step allows the configuration of the build options,
-such as whether to enable the examples, tests and more.
-
-To configure ns-3 with examples and tests enabled,
-run the following command on the ns-3 main directory:
-
-```shell
-./ns3 configure --enable-examples --enable-tests
+<!-- TODO: adjust to the actual layout of the repository -->
+```
+.
+├── examples/
+│   └── mcc-nr-mu-mimo.cc          # Main simulation script
+├── model/                         # Modified / new 5G-LENA model files
+│   ├── nr-cb-type-two.{h,cc}
+│   ├── nr-pm-search-type-two.{h,cc}
+│   ├── nr-mac-scheduler-tdma-sdma.{h,cc}
+│   └── nr-mac-scheduler-tdma-sdma-rr.{h,cc}
+├── scripts/
+│   ├── analysis/                  # RxPacketTrace post-processing and plotting
+│   └── slurm/                     # Batch scripts for parameter sweeps
+└── README.md
 ```
 
-Then, build ns-3 by running the following command:
+---
 
-```shell
+## Requirements
+
+| Component | Version |
+|-----------|---------|
+| ns-3      | `ns-3.xx` <!-- TODO --> |
+| 5G-LENA   | `5g-lena-v4.x.y` <!-- TODO --> |
+| Compiler  | GCC ≥ 11 or Clang ≥ 14 |
+| CMake     | ≥ 3.13 |
+| Eigen3    | Required (MIMO / codebook computations) |
+| Python    | ≥ 3.8 (analysis scripts only) |
+
+Python packages for analysis: `numpy`, `pandas`, `matplotlib`, `scipy`.
+
+---
+
+## Installation
+
+```bash
+# 1. Clone ns-3
+git clone https://gitlab.com/nsnam/ns-3-dev.git
+cd ns-3-dev
+git checkout ns-3.xx            # TODO: set version
+
+# 2. Clone this repository as the nr module
+cd contrib
+git clone https://github.com/<user>/<repo>.git nr   # TODO: set URL
+cd ..
+
+# 3. Install Eigen (Ubuntu/Debian)
+sudo apt install libeigen3-dev
+
+# 4. Configure and build
+./ns3 configure --enable-examples --enable-tests -d optimized
 ./ns3 build
 ```
 
-By default, the build artifacts will be stored in the `build/` directory.
+> **Tip:** Use the `optimized` profile for parameter sweeps; switch to `-d debug` when developing.
 
-### Supported Platforms
+---
 
-The current codebase is expected to build and run on the
-set of platforms listed in the [release notes](RELEASE_NOTES.md)
-file.
+## Running the Simulation
 
-Other platforms may or may not work: we welcome patches to
-improve the portability of the code to these other platforms.
+The reference configuration used in the paper:
 
-## Testing ns-3
-
-ns-3 contains test suites to validate the models and detect regressions.
-To run the test suite, run the following command on the ns-3 main directory:
-
-```shell
-./test.py
+```bash
+./ns3 run "mcc-nr-mu-mimo.cc \
+  --pmSearchMethod=ns3::NrPmSearchTypeTwo \
+  --fullSearchCb=ns3::NrCbTypeTwo \
+  --rankLimit=1 \
+  --subbandSize=8 \
+  --numRowsGnb=8 --numColumnsGnb=4 \
+  --numVPortsGnb=4 --numHPortsGnb=4 --xPolGnb=true \
+  --numRowsUe=4 --numColumnsUe=2 \
+  --numVPortsUe=2 --numHPortsUe=2 --xPolUe=true \
+  --packetInterval=160us \
+  --simTime=1 \
+  --bandwidth=10e6 \
+  --scheduler=ns3::NrMacSchedulerTdmaSdmaRR \
+  --beamformingMethod=ns3::DirectPathBeamforming \
+  --Users=4 --maxSdmaUsers=4 --MaxStreams=4 \
+  --runNumber=42 \
+  --threshold=3e-1 \
+  --csiFlags=6 \
+  --ns3::NrMacSchedulerTdmaSdma::FullCsiBaseline=false"
 ```
 
-More information about ns-3 tests is available in the
-[test framework](doc/manual/source/test-framework.rst) section of the manual.
+To run the **Full-CSI SVD baseline** instead of CPOG, set:
 
-## Running ns-3
-
-On recent Linux systems, once you have built ns-3 (with examples
-enabled), it should be easy to run the sample programs with the
-following command, such as:
-
-```shell
-./ns3 run simple-global-routing
+```bash
+--ns3::NrMacSchedulerTdmaSdma::FullCsiBaseline=true
 ```
 
-That program should generate a `simple-global-routing.tr` text
-trace file and a set of `simple-global-routing-xx-xx.pcap` binary
-PCAP trace files, which can be read by `tcpdump -n -tt -r filename.pcap`.
-The program source can be found in the `examples/routing` directory.
+<!-- TODO: add the attribute/flag used to select the volume-ratio and k-means baselines -->
 
-## Running ns-3 from Python
+---
 
-If you do not plan to modify ns-3 upstream modules, you can get
-a pre-built version of the ns-3 python bindings. It is recommended
-to create a python virtual environment to isolate different application
-packages from system-wide packages (installable via the OS package managers).
+## Parameters
 
-```shell
-python3 -m venv ns3env
-source ./ns3env/bin/activate
-pip install ns3
+### CSI and Codebook
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `pmSearchMethod` | `ns3::NrPmSearchTypeTwo` | PMI search algorithm used by the UE |
+| `fullSearchCb` | `ns3::NrCbTypeTwo` | Codebook used for the PMI search (Type-II) |
+| `rankLimit` | `1` | Maximum transmission rank per UE |
+| `subbandSize` | `8` | Subband size in PRBs for subband PMI/CQI reporting |
+| `csiFlags` | `6` | CSI feedback flags bitmask (`CQI_PDSCH_MIMO` \| `CQI_CSI_RS`) |
+
+### Antenna Configuration
+
+| Parameter | gNB | UE |
+|-----------|-----|----|
+| Rows × Columns | 8 × 4 | 4 × 2 |
+| Vertical ports | 4 | 2 |
+| Horizontal ports | 4 | 2 |
+| Dual-polarized | Yes | Yes |
+| **Total antenna ports** | **32** | **8** |
+
+The number of ports is `numVPorts × numHPorts × (xPol ? 2 : 1)`.
+
+### Scheduling and MU-MIMO
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `scheduler` | `ns3::NrMacSchedulerTdmaSdmaRR` | TDMA+SDMA round-robin scheduler |
+| `beamformingMethod` | `ns3::DirectPathBeamforming` | Initial analog beamforming method |
+| `Users` | `4` | Number of UEs in the scenario |
+| `maxSdmaUsers` | `4` | Maximum number of users co-scheduled in one SDMA group |
+| `MaxStreams` | `4` | Maximum total spatial streams per slot |
+| `threshold` | `0.3` | Orthogonality threshold for CPOG user grouping |
+| `NrMacSchedulerTdmaSdma::FullCsiBaseline` | `false` | `false` = CPOG (codebook-based), `true` = Full-CSI SVD baseline |
+
+### Traffic and Simulation
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `packetInterval` | `160us` | UDP packet inter-arrival time (near full-buffer load) |
+| `bandwidth` | `10e6` | Channel bandwidth in Hz (10 MHz) |
+| `simTime` | `1` | Simulation duration in seconds |
+| `runNumber` | `42` | RNG run number for reproducibility |
+
+---
+
+## Output
+
+The simulation writes the standard 5G-LENA trace files to the working directory, most importantly:
+
+- `RxPacketTrace.csv` — per-TB reception records (RNTI, SINR, MCS, TB size, corruption status), used for all SINR and throughput analysis
+- <!-- TODO: list any additional custom traces, e.g. grouping decisions or co-scheduling logs -->
+
+---
+
+## Reproducing the Paper Results
+
+### 1. Parameter sweep
+
+The scalability results sweep the number of users from K = 1 to K = 16 over multiple independent runs. Example local loop:
+
+```bash
+for K in 1 2 4 8 12 16; do
+  for RUN in $(seq 1 50); do
+    ./ns3 run "mcc-nr-mu-mimo.cc <reference flags> --Users=$K --runNumber=$RUN" \
+      --cwd="results/K${K}_run${RUN}"
+  done
+done
 ```
 
-If you do not have `pip`, check their documents
-on [how to install it](https://pip.pypa.io/en/stable/installation/).
 
-After installing the `ns3` package, you can then create your simulation python script.
-Below is a trivial demo script to get you started.
+### 2. Analysis
 
-```python
-from ns import ns
-
-ns.LogComponentEnable("Simulator", ns.LOG_LEVEL_ALL)
-
-ns.Simulator.Stop(ns.Seconds(10))
-ns.Simulator.Run()
-ns.Simulator.Destroy()
+```bash
+cd scripts/analysis
+python3 plot_sinr_cdf.py        --input ../../results   # SINR CDFs
+python3 plot_coscheduling.py    --input ../../results   # Co-scheduling degree
+python3 plot_throughput_box.py  --input ../../results   # Per-UE throughput box plots
+python3 plot_scalability.py     --input ../../results   # Scalability vs. K
 ```
 
-The simulation will take a while to start, while the bindings are loaded.
-The script above will print the logging messages for the called commands.
+<!-- TODO: match script names and arguments to the actual files -->
 
-Use `help(ns)` to check the prototypes for all functions defined in the
-ns3 namespace. To get more useful results, query specific classes of
-interest and their functions e.g., `help(ns.Simulator)`.
+---
 
-Smart pointers `Ptr<>` can be differentiated from objects by checking if
-`__deref__` is listed in `dir(variable)`. To dereference the pointer,
-use `variable.__deref__()`.
+## Citation
 
-Most ns-3 simulations are written in C++ and the documentation is
-oriented towards C++ users. The ns-3 tutorial programs (`first.cc`,
-`second.cc`, etc.) have Python equivalents, if you are looking for
-some initial guidance on how to use the Python API. The Python
-API may not be as full-featured as the C++ API, and an API guide
-for what C++ APIs are supported or not from Python do not currently exist.
-The project is looking for additional Python maintainers to improve
-the support for future Python users.
+If you use this code in your research, please cite:
 
-## ns-3 Documentation
 
-Once you have verified that your build of ns-3 works by running
-the `simple-global-routing` example as outlined in the [running ns-3](#running-ns-3)
-section, it is quite likely that you will want to get started on reading
-some ns-3 documentation.
+---
 
-All of that documentation should always be available from
-the ns-3 website: <https://www.nsnam.org/documentation/>.
+## License
 
-This documentation includes:
+This project builds on ns-3 and 5G-LENA and is distributed under the **GNU General Public License v2.0**, consistent with the upstream projects. See [LICENSE](LICENSE) for details.
 
-* a tutorial
-* a reference manual
-* models in the ns-3 model library
-* a wiki for user-contributed tips: <https://www.nsnam.org/wiki/>
-* API documentation generated using doxygen: this is
-  a reference manual, most likely not very well suited
-  as introductory text:
-  <https://www.nsnam.org/doxygen/index.html>
+---
 
-## Working with the Development Version of ns-3
+## Contact
 
-If you want to download and use the development version of ns-3, you
-need to use the tool `git`. A quick and dirty cheat sheet is included
-in the manual, but reading through the Git
-tutorials found in the Internet is usually a good idea if you are not
-familiar with it.
+**Amirhassan Babazadeh Darabi**
+Chair of Mobile Communications and Computing (MCC), RWTH Aachen University
+<!-- TODO: email / website -->
 
-If you have successfully installed Git, you can get
-a copy of the development version with the following command:
-
-```shell
-git clone https://gitlab.com/nsnam/ns-3-dev.git
-```
-
-However, we recommend to follow the GitLab guidelines for starters,
-that includes creating a GitLab account, forking the ns-3-dev project
-under the new account's name, and then cloning the forked repository.
-You can find more information in the [manual](https://www.nsnam.org/docs/manual/html/working-with-git.html).
-
-## Contributing to ns-3
-
-The process of contributing to the ns-3 project varies with
-the people involved, the amount of time they can invest
-and the type of model they want to work on, but the current
-process that the project tries to follow is described in the
-[contributing code](https://www.nsnam.org/developers/contributing-code/)
-website and in the [CONTRIBUTING.md](CONTRIBUTING.md) file.
-
-## Reporting Issues
-
-If you would like to report an issue, you can open a new issue in the
-[GitLab issue tracker](https://gitlab.com/nsnam/ns-3-dev/-/issues).
-Before creating a new issue, please check if the problem that you are facing
-was already reported and contribute to the discussion, if necessary.
-
-## Asking Questions
-
-ns-3 has an official [ns-3-users message board](https://groups.google.com/g/ns-3-users)
-where the community asks questions and share helpful advice.
-Additionally, ns-3 has the [ns-3 Zulip chat](https://ns-3.zulipchat.com/), used to discuss
-development issues and questions among maintainers and the community.
-
-Please use the above resources to ask questions about ns-3, rather than creating issues.
-
-## ns-3 App Store
-
-The official [ns-3 App Store](https://apps.nsnam.org/) is a centralized directory
-listing third-party modules for ns-3 available on the Internet.
-
-More information on how to submit an ns-3 module to the ns-3 App Store is available
-in the [ns-3 App Store documentation](https://www.nsnam.org/docs/contributing/html/external.html).
+Issues and pull requests are welcome.

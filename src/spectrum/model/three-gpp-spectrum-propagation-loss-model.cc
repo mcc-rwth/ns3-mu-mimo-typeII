@@ -22,6 +22,7 @@
 #include "ns3/string.h"
 
 #include <map>
+#include <fstream>
 
 namespace ns3
 {
@@ -29,6 +30,48 @@ namespace ns3
 NS_LOG_COMPONENT_DEFINE("ThreeGppSpectrumPropagationLossModel");
 
 NS_OBJECT_ENSURE_REGISTERED(ThreeGppSpectrumPropagationLossModel);
+
+// ----------------------- MODIFIED ----------------------------
+// Functions to log the analog beamforming vectors
+
+
+#include <fstream>
+
+void
+SaveBeamformingVectorCsv(const std::string& filename,
+                        const PhasedArrayModel::ComplexVector& w)
+{
+    std::ofstream file;
+    file.open(filename, std::ios::out | std::ios::app);
+
+    if (!file.is_open())
+    {
+        NS_LOG_UNCOND("Could not open file: " << filename);
+        return;
+    }
+
+    double t = ns3::Simulator::Now().GetSeconds();
+
+    for (size_t p = 0; p < w.GetNumPages(); ++p)
+    {
+        for (size_t i = 0; i < w.GetNumRows(); ++i)
+        {
+            for (size_t j = 0; j < w.GetNumCols(); ++j)
+            {
+                auto val = w.Elem(i, j, p);
+
+                file << t << ","
+                     << p << ","
+                     << i << ","
+                     << j << ","
+                     << val.real() << ","
+                     << val.imag() << "\n";
+            }
+        }
+    }
+
+    file.close();
+}
 
 ThreeGppSpectrumPropagationLossModel::ThreeGppSpectrumPropagationLossModel()
 {
@@ -201,7 +244,7 @@ ThreeGppSpectrumPropagationLossModel::CalcBeamformingGain(
     Ptr<const MatrixBasedChannelModel::ChannelParams> channelParams,
     const Vector& sSpeed,
     const ns3::Vector& uSpeed,
-    uint8_t numTxPorts,
+    uint16_t numTxPorts,
     uint8_t numRxPorts,
     bool isReverse) const
 
@@ -339,7 +382,7 @@ ThreeGppSpectrumPropagationLossModel::GenSpectrumChannelMatrix(
     Ptr<const MatrixBasedChannelModel::ChannelMatrix> channelMatrix,
     Ptr<const MatrixBasedChannelModel::ChannelParams> channelParams,
     PhasedArrayModel::ComplexVector doppler,
-    uint8_t numTxPorts,
+    uint16_t numTxPorts,
     uint8_t numRxPorts,
     bool isReverse) const
 {
@@ -478,6 +521,13 @@ ThreeGppSpectrumPropagationLossModel::GetLongTerm(
     if (update || notFound)
     {
         NS_LOG_DEBUG("compute the long term");
+        // Save TX beam
+        // SaveBeamformingVectorCsv("tx_beam.csv", std::move(sW));
+
+        // Save RX beam
+        // SaveBeamformingVectorCsv("rx_beam.csv", std::move(uW));
+        // NS_LOG_UNCOND("U The ID is = " << uAntenna->GetNumElems());
+
         // compute the long term component
         longTerm = CalcLongTerm(channelMatrix, sAntenna, uAntenna);
         Ptr<LongTerm> longTermItem = Create<LongTerm>();
@@ -489,6 +539,11 @@ ThreeGppSpectrumPropagationLossModel::GetLongTerm(
         // only the small scale fading needs to be updated if the large scale parameters and antenna
         // weights remain unchanged.
         m_longTermMap[longTermId] = longTermItem;
+
+
+        
+
+        longTerm = CalcLongTerm(channelMatrix, sAntenna, uAntenna);
     }
 
     return longTerm;

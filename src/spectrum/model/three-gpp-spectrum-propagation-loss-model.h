@@ -155,7 +155,7 @@ class ThreeGppSpectrumPropagationLossModel : public PhasedArraySpectrumPropagati
         Ptr<const MatrixBasedChannelModel::ChannelMatrix> channelMatrix,
         Ptr<const MatrixBasedChannelModel::ChannelParams> channelParams,
         PhasedArrayModel::ComplexVector doppler,
-        uint8_t numTxPorts,
+        uint16_t numTxPorts,
         uint8_t numRxPorts,
         bool isReverse) const;
 
@@ -229,7 +229,7 @@ class ThreeGppSpectrumPropagationLossModel : public PhasedArraySpectrumPropagati
         Ptr<const MatrixBasedChannelModel::ChannelParams> channelParams,
         const Vector& sSpeed,
         const Vector& uSpeed,
-        uint8_t numTxPorts,
+        uint16_t numTxPorts,
         uint8_t numRxPorts,
         bool isReverse) const;
 
