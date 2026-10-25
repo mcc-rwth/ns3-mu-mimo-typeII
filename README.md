@@ -72,8 +72,8 @@ It extends [5G-LENA](https://gitlab.com/cttc-lena/nr) with multi-user MIMO (MU-M
 
 | Component | Version |
 |-----------|---------|
-| ns-3      | `ns-3.xx` <!-- TODO --> |
-| 5G-LENA   | `5g-lena-v4.x.y` <!-- TODO --> |
+| ns-3      | `ns-3.xx` |
+| 5G-LENA   | `5g-lena-v4.x.y` |
 | Compiler  | GCC ≥ 11 or Clang ≥ 14 |
 | CMake     | ≥ 3.13 |
 | Eigen3    | Required (MIMO / codebook computations) |
@@ -89,11 +89,11 @@ Python packages for analysis: `numpy`, `pandas`, `matplotlib`, `scipy`.
 # 1. Clone ns-3
 git clone https://gitlab.com/nsnam/ns-3-dev.git
 cd ns-3-dev
-git checkout ns-3.xx            # TODO: set version
+git checkout ns-3.xx
 
 # 2. Clone this repository as the nr module
 cd contrib
-git clone https://github.com/<user>/<repo>.git nr   # TODO: set URL
+git clone https://github.com/<user>/<repo>.git nr
 cd ..
 
 # 3. Install Eigen (Ubuntu/Debian)
@@ -177,7 +177,7 @@ The number of ports is `numVPorts × numHPorts × (xPol ? 2 : 1)`.
 | `Users` | `4` | Number of UEs in the scenario |
 | `maxSdmaUsers` | `4` | Maximum number of users co-scheduled in one SDMA group |
 | `MaxStreams` | `4` | Maximum total spatial streams per slot |
-| `threshold` | `0.3` | Orthogonality threshold for CPOG user grouping |
+| `threshold` | `0.03` | Orthogonality threshold for CPOG user grouping |
 | `NrMacSchedulerTdmaSdma::FullCsiBaseline` | `false` | `false` = CPOG (codebook-based), `true` = Full-CSI SVD baseline |
 
 ### Traffic and Simulation
@@ -247,6 +247,6 @@ This project builds on ns-3 and 5G-LENA and is distributed under the **GNU Gener
 
 **Amirhassan Babazadeh Darabi**
 Chair of Mobile Communications and Computing (MCC), RWTH Aachen University
-<!-- TODO: email / website -->
+
 
 Issues and pull requests are welcome.
